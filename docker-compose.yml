@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+
+  order-api:
+    build: .
+    container_name: order-api
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_PORT=8080
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/orderdb
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_REDIS_HOST=redis
+    depends_on:
+      - mongodb
+      - rabbitmq
+      - redis
+
+  mongodb:
+    image: mongo:7.0
+    container_name: mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh mongodb://localhost:27017/orderdb --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-guest}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS:-guest}
+    depends_on:
+      - mongodb
+      - redis
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  redis:
+    image: redis:7.0
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --save 20 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+
+volumes:
+  mongodb_data:
+  rabbitmq_data:
+  redis_data:
