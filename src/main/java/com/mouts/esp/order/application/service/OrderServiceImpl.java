@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import com.mouts.esp.order.application.usecases.ProcessOrderUseCase;
 import com.mouts.esp.order.domain.entities.Order;
 import com.mouts.esp.order.infrastructure.cache.OrderCacheService;
 import com.mouts.esp.order.infrastructure.repositories.OrderRepository;
@@ -20,10 +21,12 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderCacheService orderCacheService;
+    private final ProcessOrderUseCase processOrderUseCase;
 
-    public OrderServiceImpl(OrderRepository orderRepository, OrderCacheService orderCacheService) {
+    public OrderServiceImpl(OrderRepository orderRepository, OrderCacheService orderCacheService, ProcessOrderUseCase processOrderUseCase) {
         this.orderRepository = orderRepository;
         this.orderCacheService = orderCacheService;
+        this.processOrderUseCase = processOrderUseCase;
     }
 
     @Override
@@ -34,11 +37,9 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderAlreadyExistsException("Pedido com ID " + order.getOrderId() + " já cadastrado.");
         }
 
-        Order savedOrder = orderRepository.save(order);
-        logger.info("Pedido salvo no banco: {}", savedOrder);
-        orderCacheService.add(savedOrder.getOrderId(), savedOrder);
+		processOrderUseCase.process(order);
 
-        return savedOrder;
+        return order;
     }
     
     @Override

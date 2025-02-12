@@ -21,7 +21,7 @@ import org.slf4j.Logger;
 import com.mouts.esp.order.application.service.OrderService;
 import com.mouts.esp.order.application.usecases.ProcessOrderUseCase;
 import com.mouts.esp.order.domain.entities.Order;
-import com.mouts.esp.order.infrastructure.adapters.MessageQueueAdapter;
+import com.mouts.esp.order.infrastructure.adapters.OrderPublishQueueAdapter;
 import com.mouts.esp.order.infrastructure.cache.OrderCacheService;
 import com.mouts.esp.order.infrastructure.repositories.OrderRepository;
 
@@ -37,7 +37,7 @@ class ProcessOrderUseCaseTest {
     private OrderRepository orderRepository;
 
     @Mock
-    private MessageQueueAdapter messageQueueAdapter;
+    private OrderPublishQueueAdapter orderPublishQueueAdapter;
 
     @Mock
     private Logger logger;
@@ -51,7 +51,7 @@ class ProcessOrderUseCaseTest {
     }
 
     @Test
-    void shouldProcessAndSaveOrder() {
+    void shouldProcessAndSaveOrder() throws Exception {
         String orderId = "123";
         Order order = Order.builder().orderId(orderId).build();
 
@@ -64,7 +64,7 @@ class ProcessOrderUseCaseTest {
 
         verify(orderRepository, times(1)).save(order);
         verify(orderCacheService, times(1)).add(orderId, order);
-        verify(messageQueueAdapter, times(1)).publish(order);
+        verify(orderPublishQueueAdapter, times(1)).publish(order);
     }
 
 
@@ -79,7 +79,7 @@ class ProcessOrderUseCaseTest {
 
         processOrderUseCase.process(order);
 
-        verifyNoInteractions(messageQueueAdapter);
+        verifyNoInteractions(orderPublishQueueAdapter);
         verifyNoInteractions(orderRepository);
         verifyNoInteractions(orderCacheService);
     }
@@ -95,12 +95,12 @@ class ProcessOrderUseCaseTest {
         assertThrows(RuntimeException.class, () -> processOrderUseCase.process(order));
 
         verifyNoInteractions(orderCacheService);
-        verifyNoInteractions(messageQueueAdapter);
+        verifyNoInteractions(orderPublishQueueAdapter);
         verify(logger).error(eq("Erro ao salvar pedido no banco: {}"), eq(order), any(RuntimeException.class));
     }
 
     @Test
-    void shouldProcessOrderWhenCacheIsUnavailable() {
+    void shouldProcessOrderWhenCacheIsUnavailable() throws Exception {
         String orderId = "123";
         Order order = Order.builder().orderId(orderId).build();
 
@@ -112,7 +112,7 @@ class ProcessOrderUseCaseTest {
         processOrderUseCase.process(order);
 
         verify(orderRepository, times(1)).save(order);
-        verify(messageQueueAdapter, times(1)).publish(order);
+        verify(orderPublishQueueAdapter, times(1)).publish(order);
         verify(logger).error(eq("Erro ao adicionar pedido ao cache: {}"), eq(orderId), any(RuntimeException.class));
     }
 }

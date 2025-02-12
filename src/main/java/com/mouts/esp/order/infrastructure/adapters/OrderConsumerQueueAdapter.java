@@ -13,16 +13,17 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouts.esp.order.application.service.OrderService;
 import com.mouts.esp.order.domain.entities.Order;
+import com.mouts.esp.order.infrastructure.config.RabbitMQConfig;
 
 @Component
-public class OrderConsumer {
+public class OrderConsumerQueueAdapter {
 
-    private static final Logger logger = LoggerFactory.getLogger(OrderConsumer.class);
+    private static final Logger logger = LoggerFactory.getLogger(OrderConsumerQueueAdapter.class);
 
     private final OrderService orderService;
     private final ObjectMapper objectMapper;
     
-    public OrderConsumer(OrderService orderService, ObjectMapper objectMapper) {
+    public OrderConsumerQueueAdapter(OrderService orderService, ObjectMapper objectMapper) {
         this.orderService = orderService;
         this.objectMapper = objectMapper;
     }
@@ -32,16 +33,14 @@ public class OrderConsumer {
         maxAttempts = 3,
         backoff = @Backoff(delay = 5000)
     )
-    @RabbitListener(queues = "orders.queue")
+    @RabbitListener(queues = RabbitMQConfig.ORDERS_GENERATED_QUEUE)
     public void consume(String message) throws Exception {
         if (Objects.isNull(message) || message.isBlank()) {
             logger.warn("Mensagem vazia");
             return;
         }
-
         try {
             Order order = objectMapper.readValue(message, Order.class);
-
             if (Objects.isNull(order.getOrderId()) || order.getOrderId().isBlank()) {
                 logger.error("Mensagem inválida/Pedido sem ID: {}", message);
                 return;
@@ -56,14 +55,7 @@ public class OrderConsumer {
             logger.info("Pedido processado: {}", order.getOrderId());
 
         } catch (Exception e) {
-            logger.error("Erro ao processar mensagem: {}", 
-                message.length() > 100 ? message.substring(0, 100) : message, e);
-            
-            if (e instanceof com.fasterxml.jackson.core.JsonProcessingException) {
-                logger.error("Mensagem corrompida: {}", message);
-                return;
-            }
-
+            logger.error("Erro ao processar mensagem: {}", message, e);
             throw e;
         }
     }

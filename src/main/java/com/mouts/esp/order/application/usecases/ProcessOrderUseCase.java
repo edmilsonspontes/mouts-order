@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.mouts.esp.order.domain.entities.Order;
-import com.mouts.esp.order.infrastructure.adapters.MessageQueueAdapter;
+import com.mouts.esp.order.infrastructure.adapters.OrderPublishQueueAdapter;
 import com.mouts.esp.order.infrastructure.cache.OrderCacheService;
 import com.mouts.esp.order.infrastructure.repositories.OrderRepository;
 
@@ -16,12 +16,12 @@ public class ProcessOrderUseCase {
     
     private final OrderRepository orderRepository;
     private final OrderCacheService orderCacheService;
-    private final MessageQueueAdapter messageQueueAdapter;
+    private final OrderPublishQueueAdapter orderPublishQueueAdapter;
 
-    public ProcessOrderUseCase(OrderRepository orderRepository, OrderCacheService orderCacheService, MessageQueueAdapter messageQueueAdapter) {
+    public ProcessOrderUseCase(OrderRepository orderRepository, OrderCacheService orderCacheService, OrderPublishQueueAdapter messageQueueAdapter) {
         this.orderRepository = orderRepository;
         this.orderCacheService = orderCacheService;
-        this.messageQueueAdapter = messageQueueAdapter;
+        this.orderPublishQueueAdapter = messageQueueAdapter;
     }
 
     public void process(final Order order) {
@@ -40,6 +40,10 @@ public class ProcessOrderUseCase {
         orderCacheService.add(order.getOrderId(), order);
         
         logger.info("Pedido {} processado com sucesso.", order.getOrderId());
-        messageQueueAdapter.publish(order);
+        try {
+			orderPublishQueueAdapter.publish(order);
+		} catch (Exception e) {
+			logger.error("Erro ao processar mensagem: {}", e);
+		}
     }
 }

@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouts.esp.order.application.usecases.ProcessOrderUseCase;
 import com.mouts.esp.order.domain.entities.Order;
 
-class OrderConsumerTest {
+class OrderConsumerQueueAdapterTest {
 
     @Mock
     private ProcessOrderUseCase processOrderUseCase;
@@ -32,7 +32,7 @@ class OrderConsumerTest {
     private Logger logger;
 
     @InjectMocks
-    private OrderConsumer orderConsumer;
+    private OrderConsumerQueueAdapter orderConsumerQueueAdapter;
 
     @BeforeEach
     void setUp() {
@@ -47,7 +47,7 @@ class OrderConsumerTest {
 
         when(objectMapper.readValue(message, Order.class)).thenReturn(order);
 
-        orderConsumer.consume(message);
+        orderConsumerQueueAdapter.consume(message);
 
         verify(processOrderUseCase, times(1)).process(order);
     }
@@ -58,7 +58,7 @@ class OrderConsumerTest {
 
         doThrow(new JsonProcessingException("JSON error") {}).when(objectMapper).readValue(invalidMessage, Order.class);
 
-        orderConsumer.consume(invalidMessage);
+        orderConsumerQueueAdapter.consume(invalidMessage);
 
         verifyNoInteractions(processOrderUseCase);
         verify(logger).error(eq("Erro ao desserializar mensagem: {}"), eq(invalidMessage), any(JsonProcessingException.class));
@@ -72,7 +72,7 @@ class OrderConsumerTest {
         when(objectMapper.readValue(message, Order.class)).thenReturn(order);
         doThrow(new RuntimeException("Processing error")).when(processOrderUseCase).process(order);
 
-        orderConsumer.consume(message);
+        orderConsumerQueueAdapter.consume(message);
 
         verify(processOrderUseCase, times(1)).process(order);
         verify(logger).error(eq("Erro ao processar pedido: {}"), eq(order), any(RuntimeException.class));
