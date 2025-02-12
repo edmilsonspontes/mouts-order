@@ -25,6 +25,7 @@ public class ProcessOrderUseCase {
     }
 
     public void process(final Order order) {
+    	logger.info("Iniciando processamento: orderId={}", order.getOrderId());
         if (orderCacheService.get(order.getOrderId()) != null) {
             logger.warn("Pedido {} já processado, ignorando...", order.getOrderId());
             return;

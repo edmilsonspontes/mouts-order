@@ -9,7 +9,7 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.test.context.ContextConfiguration;
 
 @SpringBootTest
-@ContextConfiguration(initializers = TestContainersConfig.Initializer.class)
+@ContextConfiguration(initializers = OrderIntegrationTest.Initializer.class)
 class RedisIntegrationTest {
 
     @Autowired

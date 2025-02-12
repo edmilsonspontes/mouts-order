@@ -31,13 +31,16 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Order create(final Order order) {
+    	long startTime = System.currentTimeMillis();
         logger.info("Criando pedido: {}", order.getOrderId());
         
         if (exists(order.getOrderId()) != null) {
-            throw new OrderAlreadyExistsException("Pedido com ID " + order.getOrderId() + " já cadastrado.");
+            throw new OrderAlreadyExistsException("Pedido com orderId " + order.getOrderId() + " já cadastrado.");
         }
 
 		processOrderUseCase.process(order);
+	    logger.info("Pedido criado: orderId={}, tempoExecucao={}ms",
+	    		order.getOrderId(), (System.currentTimeMillis() - startTime));
 
         return order;
     }

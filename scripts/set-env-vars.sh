@@ -1,7 +1,5 @@
 #!/bin/bash
 
-echo "Configurando variáveis de ambiente para o projeto..."
-
 # RabbitMQ
 export RABBITMQ_USER="admin"
 export RABBITMQ_PASS="admin"

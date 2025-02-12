@@ -15,7 +15,7 @@ import com.mouts.esp.order.domain.entities.Order;
 import com.mouts.esp.order.infrastructure.repositories.OrderRepository;
 
 @SpringBootTest
-@ContextConfiguration(initializers = TestContainersConfig.Initializer.class)
+@ContextConfiguration(initializers = OrderIntegrationTest.Initializer.class)
 class OrderServiceIntegrationTest {
 
     @Autowired

@@ -35,6 +35,7 @@ public class OrderConsumerQueueAdapter {
     )
     @RabbitListener(queues = RabbitMQConfig.ORDERS_GENERATED_QUEUE)
     public void consume(String message) throws Exception {
+    	logger.info("Recebendo pedido da fila");
         if (Objects.isNull(message) || message.isBlank()) {
             logger.warn("Mensagem vazia");
             return;
