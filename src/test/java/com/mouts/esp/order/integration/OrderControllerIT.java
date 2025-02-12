@@ -1,15 +1,14 @@
 package com.mouts.esp.order.integration;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouts.esp.order.application.service.OrderService;
@@ -29,7 +29,7 @@ import com.mouts.esp.order.infrastructure.repositories.OrderRepository;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class OrderControllerIntegrationTest {
+class OrderControllerIT {
 
     @Autowired
     private MockMvc mockMvc;
@@ -52,6 +52,8 @@ class OrderControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        orderRepository.deleteAll();
+        redisTemplate.getConnectionFactory().getConnection().serverCommands().flushAll();
     }
 
     @Test
@@ -72,23 +74,35 @@ class OrderControllerIntegrationTest {
     }
     
     @Test
-    void shouldCreateAndRetrieveOrderSuccessfully() {
+    void shouldCreateAndRetrieveOrderSuccessfully() throws Exception {
         String orderId = "123";
-
         Order order = Order.builder().orderId(orderId).build();
         orderService.create(order);
 
         Optional<Order> savedOrder = orderRepository.findByOrderId(orderId);
-        assertTrue(savedOrder.isPresent(), "Pedido não foi salvo na base de dados/Mongo!");
+        assertTrue(savedOrder.isPresent(), "Pedido não foi salvo na base de dados!");
 
         Order cachedOrder = redisTemplate.opsForValue().get(orderId);
-        assertNotNull(cachedOrder, "Pedido não foi salvo no cache/Redis!");
+        assertNotNull(cachedOrder, "Pedido não foi salvo no cache!");
 
         rabbitTemplate.convertAndSend(RabbitMQConfig.ORDERS_PROCESSED_QUEUE, order);
-        assertTimeout(Duration.ofSeconds(5), () -> {
+
+        Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
             Order receivedOrder = (Order) rabbitTemplate.receiveAndConvert(RabbitMQConfig.ORDERS_PROCESSED_QUEUE);
             assertNotNull(receivedOrder, "Pedido não foi processado pelo RabbitMQ!");
         });
     }
+    
+    @Test
+    void testOrderProcessingInRabbitMQ() throws Exception {
+        Order order = Order.builder().orderId("456").build();
+        rabbitTemplate.convertAndSend(RabbitMQConfig.ORDERS_GENERATED_QUEUE, order);
+
+        Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
+            Optional<Order> processedOrder = orderRepository.findByOrderId("456");
+            assertTrue(processedOrder.isPresent(), "Pedido não foi processado corretamente pelo RabbitMQ.");
+        });
+    }
+
     
 }

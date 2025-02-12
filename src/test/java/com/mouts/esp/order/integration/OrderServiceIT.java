@@ -3,6 +3,7 @@ package com.mouts.esp.order.integration;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,8 +16,8 @@ import com.mouts.esp.order.domain.entities.Order;
 import com.mouts.esp.order.infrastructure.repositories.OrderRepository;
 
 @SpringBootTest
-@ContextConfiguration(initializers = OrderIntegrationTest.Initializer.class)
-class OrderServiceIntegrationTest {
+@ContextConfiguration(initializers = OrderIT.Initializer.class)
+class OrderServiceIT {
 
     @Autowired
     private OrderService orderService;
