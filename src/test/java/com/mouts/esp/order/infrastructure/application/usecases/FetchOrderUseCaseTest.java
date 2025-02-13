@@ -67,6 +67,7 @@ class FetchOrderUseCaseTest {
         verify(orderCacheService, times(1)).add(orderId, order);
     }
 
+
     @Test
     void shouldReturnNullIfOrderNotFoundAnywhere() {
         String orderId = "123";

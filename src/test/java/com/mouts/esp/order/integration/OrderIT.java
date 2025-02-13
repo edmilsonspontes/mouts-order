@@ -14,6 +14,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.containers.RabbitMQContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -25,12 +26,14 @@ public class OrderIT {
     static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:7.0");
 
     @Container
-    static RabbitMQContainer rabbitMQContainer = new RabbitMQContainer("rabbitmq:3-management")
-        .withExposedPorts(5672, 15672);
+    static RabbitMQContainer rabbitMQContainer = new RabbitMQContainer("rabbitmq:3.12-management")
+        .withExposedPorts(5672, 15672)
+        .waitingFor(Wait.forListeningPort());
 
     @Container
-    static GenericContainer<?> redisContainer = new GenericContainer<>("redis:latest")
-        .withExposedPorts(6379);
+    static GenericContainer<?> redisContainer = new GenericContainer<>("redis:6.2")
+        .withExposedPorts(6379)
+        .waitingFor(Wait.forListeningPort());
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {

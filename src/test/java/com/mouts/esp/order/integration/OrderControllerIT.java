@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -19,7 +20,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.RabbitMQContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
+import org.testcontainers.utility.DockerImageName;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouts.esp.order.application.service.OrderService;
@@ -27,6 +34,7 @@ import com.mouts.esp.order.domain.entities.Order;
 import com.mouts.esp.order.infrastructure.config.RabbitMQConfig;
 import com.mouts.esp.order.infrastructure.repositories.OrderRepository;
 
+@Testcontainers
 @SpringBootTest
 @AutoConfigureMockMvc
 class OrderControllerIT {
@@ -42,23 +50,37 @@ class OrderControllerIT {
 
     @Autowired
     private OrderRepository orderRepository;
-    
 
     @Autowired
     private RedisTemplate<String, Order> redisTemplate;
 
     @Autowired
-    private RabbitTemplate rabbitTemplate;    
+    private RabbitTemplate rabbitTemplate;
+
+    @Container
+    private static final RabbitMQContainer rabbitMQContainer = 
+        new RabbitMQContainer(DockerImageName.parse("rabbitmq:3.12-management"))
+            .withExposedPorts(5672, 15672)
+            .waitingFor(Wait.forListeningPort());
+
+    @Container
+    private static final GenericContainer<?> redisContainer =
+        new GenericContainer<>(DockerImageName.parse("redis:6.2"))
+            .withExposedPorts(6379)
+            .waitingFor(Wait.forLogMessage(".*Redis 6.2 - Ready to accept connections.*\\n", 1))
+            .withStartupTimeout(Duration.ofSeconds(90));
 
     @BeforeEach
     void setUp() {
         orderRepository.deleteAll();
-        redisTemplate.getConnectionFactory().getConnection().serverCommands().flushAll();
+        if (redisTemplate.getConnectionFactory() != null) {
+            redisTemplate.getConnectionFactory().getConnection().serverCommands().flushAll();
+        }
     }
 
     @Test
     void shouldCreateOrder() throws Exception {
-    	Order order = Order.builder().orderId("12345").build();
+        Order order = Order.builder().orderId("12345").build();
 
         mockMvc.perform(post("/orders")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -103,6 +125,4 @@ class OrderControllerIT {
             assertTrue(processedOrder.isPresent(), "Pedido não foi processado corretamente pelo RabbitMQ.");
         });
     }
-
-    
 }

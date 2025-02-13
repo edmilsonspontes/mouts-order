@@ -42,7 +42,7 @@ public class OrderController {
 
     @Operation(summary = "Cria pedido", description = "Cria um pedido.")
     @PostMapping
-    public ResponseEntity<String> getOrder(@RequestBody OrderRequestDTO order) {
+    public ResponseEntity<String> getOrder(@RequestBody OrderRequestDTO order) throws Exception {
         if (order == null) {
             return ResponseEntity.notFound().build();
         }

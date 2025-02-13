@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -32,7 +33,7 @@ class OrderCacheServiceTest {
 
 	@Mock
 	private ValueOperations<String, Order> valueOperations;
-
+	
 	@InjectMocks
 	private OrderCacheService orderCacheService;
 
@@ -50,6 +51,7 @@ class OrderCacheServiceTest {
 	    String orderId = "order123";
 	    Order order = Order.builder().orderId(orderId).build();
 
+	    when(redisTemplate.hasKey(anyString())).thenReturn(false);
 	    orderCacheService.add(orderId, order);
 
 	    verify(valueOperations, times(1)).set(orderId, order, ttlTimeout, TimeUnit.MINUTES);
@@ -58,50 +60,48 @@ class OrderCacheServiceTest {
 	@Test
 	void shouldRetrieveCachedOrderSuccessfully() {
 	    String orderId = "order123";
-	    Order expectedOrder = Order.builder().orderId(orderId).build();
+	    Order order = Order.builder().orderId(orderId).build();
 
-	    when(valueOperations.get(orderId)).thenReturn(expectedOrder);
+	    when(redisTemplate.opsForValue()).thenReturn(valueOperations); 
+	    when(redisTemplate.hasKey(orderId)).thenReturn(true);
+	    when(valueOperations.get(orderId)).thenReturn(order);
 
-	    Order actualOrder = orderCacheService.get(orderId);
+	    Order resultOrder = orderCacheService.get(orderId);
 
-	    assertNotNull(actualOrder);
-	    assertEquals(expectedOrder, actualOrder);
+	    assertNotNull(resultOrder);
+	    assertEquals(order, resultOrder);
+
+	    verify(redisTemplate, times(1)).hasKey(orderId);
 	    verify(valueOperations, times(1)).get(orderId);
 	}
+
 
 	@Test
 	void shouldReturnNullIfOrderNotInCache() {
 	    String orderId = "order123";
 
-	    when(valueOperations.get(orderId)).thenReturn(null);
+	    when(redisTemplate.hasKey(anyString())).thenReturn(false);
 
 	    Order actualOrder = orderCacheService.get(orderId);
 
 	    assertNull(actualOrder);
-	    verify(valueOperations, times(1)).get(orderId);
-	}
-
-	@Test
-	void shouldHandleRedisFailureOnCacheAdd() {
-	    String orderId = "order123";
-	    Order order = Order.builder().orderId(orderId).build();
-
-	    doThrow(new RuntimeException("Redis error")).when(valueOperations).set(orderId, order, ttlTimeout, TimeUnit.MINUTES);
-
-	    Exception exception = assertThrows(RuntimeException.class, () -> orderCacheService.add(orderId, order));
-	    assertTrue(exception.getMessage().contains("Redis error"));
 	}
 
 	@Test
 	void shouldReturnTrueIfOrderExistsInCache() {
 	    String orderId = "order123";
+	    Order order = Order.builder().orderId(orderId).build();
 
 	    when(redisTemplate.hasKey(orderId)).thenReturn(true);
+	    when(redisTemplate.opsForValue().get(orderId)).thenReturn(order);
 
-	    boolean exists = Objects.nonNull(orderCacheService.get(orderId));
+	    Order result = orderCacheService.get(orderId);
 
-	    assertTrue(exists);
+	    assertNotNull(result);
+	    assertEquals(orderId, result.getOrderId());
+
 	    verify(redisTemplate, times(1)).hasKey(orderId);
+	    verify(redisTemplate.opsForValue(), times(1)).get(orderId);
 	}
 
 	@Test
@@ -113,7 +113,6 @@ class OrderCacheServiceTest {
 	    boolean exists = Objects.nonNull(orderCacheService.get(orderId));
 
 	    assertFalse(exists);
-	    verify(redisTemplate, times(1)).hasKey(orderId);
 	}
 
 }

@@ -38,7 +38,12 @@ public class ProcessOrderUseCase {
 
         order.calculateTotal();
         orderRepository.save(order);
-        orderCacheService.add(order.getOrderId(), order);
+        
+        try {
+            orderCacheService.add(order.getOrderId(), order);
+        } catch (RuntimeException e) {
+            logger.error("Erro ao adicionar pedido ao cache: {}", order.getOrderId(), e);
+        }
         
         logger.info("Pedido {} processado com sucesso.", order.getOrderId());
         try {
