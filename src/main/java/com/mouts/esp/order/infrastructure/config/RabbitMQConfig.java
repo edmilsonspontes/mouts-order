@@ -56,6 +56,7 @@ public class RabbitMQConfig {
         rabbitAdmin.declareExchange(ordersProcessedExchange());
         rabbitAdmin.declareBinding(bindingOrdersGenerated(ordersGeneratedQueue(), ordersGeneratedExchange()));
         rabbitAdmin.declareBinding(bindingOrdersProcessed(ordersProcessedQueue(), ordersProcessedExchange()));
+        rabbitAdmin.setAutoStartup(true);
         return rabbitAdmin;
     }
 }

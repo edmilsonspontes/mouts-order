@@ -21,10 +21,12 @@ public class OrderPublishQueueAdapter {
     }
 
     public void publish(Order order) throws Exception {
+    	logger.info("Publicando pedido processado: orderId={}, total={}, exchange={}, routingKey={}",
+    	        order.getOrderId(), order.getTotalAmount(), "orders.processed.exchange", "orders.processed.key");
         try {
         	String message = convertToJson(order);
             rabbitTemplate.convertAndSend(RabbitMQConfig.ORDERS_PROCESSED_EXCHANGE, RabbitMQConfig.ORDERS_PROCESSED_ROUTING_KEY, message);
-            System.out.println("✅ Pedido publicado no RabbitMQ: " + order.getOrderId());
+            System.out.println("Pedido publicado no RabbitMQ: " + order.getOrderId());
         } catch (Exception e) {
             logger.error("Erro ao publicar pedido no RabbitMQ: ", e);
             throw e;

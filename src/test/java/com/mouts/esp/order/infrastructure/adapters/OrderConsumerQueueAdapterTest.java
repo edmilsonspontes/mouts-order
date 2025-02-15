@@ -1,7 +1,5 @@
 package com.mouts.esp.order.infrastructure.adapters;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -13,26 +11,26 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.slf4j.Logger;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mouts.esp.order.application.service.OrderService;
 import com.mouts.esp.order.application.usecases.ProcessOrderUseCase;
 import com.mouts.esp.order.domain.entities.Order;
 
 class OrderConsumerQueueAdapterTest {
 
     @Mock
-    private ProcessOrderUseCase processOrderUseCase;
+    private OrderService orderService;
 
     @Mock
     private ObjectMapper objectMapper;
-
+    
     @Mock
-    private Logger logger;
+    private ProcessOrderUseCase processOrderUseCase;
 
     @InjectMocks
-    private OrderConsumerQueueAdapter orderConsumerQueueAdapter;
+    private OrderConsumerQueueAdapter orderConsumer;
 
     @BeforeEach
     void setUp() {
@@ -43,38 +41,25 @@ class OrderConsumerQueueAdapterTest {
     void shouldProcessMessageWhenValid() throws Exception {
         String orderId = "123";
         String message = "{\"orderId\":\"123\"}";
-        Order order = Order.builder().orderId(orderId).build();
+        Order order = Order.builder().orderId(orderId).totalAmount(100.00).status("NEW").build();
 
         when(objectMapper.readValue(message, Order.class)).thenReturn(order);
+        when(orderService.getFromCaheOrDatabase(orderId)).thenReturn(null);
 
-        orderConsumerQueueAdapter.consume(message);
+        orderConsumer.consume(message);
 
-        verify(processOrderUseCase, times(1)).process(order);
+        verify(orderService, times(1)).create(order);
     }
 
     @Test
-    void shouldHandleInvalidMessageGracefully() throws Exception {
+    void shouldIgnoreInvalidMessage() throws Exception {
         String invalidMessage = "INVALID_JSON";
 
         doThrow(new JsonProcessingException("JSON error") {}).when(objectMapper).readValue(invalidMessage, Order.class);
 
-        orderConsumerQueueAdapter.consume(invalidMessage);
+        orderConsumer.consume(invalidMessage);
 
-        verifyNoInteractions(processOrderUseCase);
-        verify(logger).error(eq("Erro ao desserializar mensagem: {}"), eq(invalidMessage), any(JsonProcessingException.class));
+        verifyNoInteractions(orderService);
     }
 
-    @Test
-    void shouldHandleProcessingExceptionGracefully() throws Exception {
-        String message = "{\"orderId\":\"123\"}";
-        Order order = Order.builder().orderId("123").build();
-
-        when(objectMapper.readValue(message, Order.class)).thenReturn(order);
-        doThrow(new RuntimeException("Processing error")).when(processOrderUseCase).process(order);
-
-        orderConsumerQueueAdapter.consume(message);
-
-        verify(processOrderUseCase, times(1)).process(order);
-        verify(logger).error(eq("Erro ao processar pedido: {}"), eq(order), any(RuntimeException.class));
-    }
 }

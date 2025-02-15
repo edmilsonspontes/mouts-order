@@ -10,6 +10,7 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mouts.esp.order.application.service.OrderService;
 import com.mouts.esp.order.domain.entities.Order;
@@ -34,29 +35,34 @@ public class OrderConsumerQueueAdapter {
         backoff = @Backoff(delay = 5000)
     )
     @RabbitListener(queues = RabbitMQConfig.ORDERS_GENERATED_QUEUE)
-    public void consume(String message) throws Exception {
-        if (Objects.isNull(message) || message.isBlank()) {
-            logger.warn("Mensagem vazia");
-            return;
-        }
+    public void consume(String message) {
+    	logger.info("Recebendo pedido da fila");
         try {
+            if (Objects.isNull(message) || message.isBlank()) {
+                logger.warn("Mensagem vazia");
+                return;
+            }
+
             Order order = objectMapper.readValue(message, Order.class);
             if (Objects.isNull(order.getOrderId()) || order.getOrderId().isBlank()) {
                 logger.error("Mensagem inválida/Pedido sem ID: {}", message);
                 return;
             }
 
-            if (Objects.nonNull(orderService.exists(order.getOrderId()))) {
+            if (Objects.nonNull(orderService.getFromCaheOrDatabase(order.getOrderId()))) {
                 logger.warn("Pedido duplicado: {}", order.getOrderId());
                 return;
             }
 
             orderService.create(order);
             logger.info("Pedido processado: {}", order.getOrderId());
-
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
+            logger.error("Erro ao desserializar mensagem: {}", message, e);
+            return;
+        }
+        catch (Exception e) {
             logger.error("Erro ao processar mensagem: {}", message, e);
-            throw e;
+            return;
         }
     }
 

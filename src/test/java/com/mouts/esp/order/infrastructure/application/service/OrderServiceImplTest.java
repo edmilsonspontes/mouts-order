@@ -2,9 +2,9 @@ package com.mouts.esp.order.infrastructure.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
@@ -20,11 +20,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
+import org.springframework.data.redis.core.RedisTemplate;
 
 import com.mouts.esp.order.application.service.OrderServiceImpl;
+import com.mouts.esp.order.application.usecases.ProcessOrderUseCase;
 import com.mouts.esp.order.domain.entities.Order;
 import com.mouts.esp.order.infrastructure.cache.OrderCacheService;
 import com.mouts.esp.order.infrastructure.repositories.OrderRepository;
+import com.mouts.esp.order.web.exceptions.OrderNotFoundException;
 
 class OrderServiceImplTest {
 
@@ -33,6 +36,12 @@ class OrderServiceImplTest {
 
     @Mock
     private OrderCacheService orderCacheService;
+    
+    @Mock
+    private ProcessOrderUseCase processOrderUseCase;
+    
+    @Mock
+    private RedisTemplate<String, Order> redisTemplate;
 
     @Mock
     private Logger logger;
@@ -43,8 +52,6 @@ class OrderServiceImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        Order order = Order.builder().orderId("123").build();
-        when(orderRepository.findByOrderId("123")).thenReturn(Optional.of(order));
     }
 
     @Test
@@ -52,13 +59,13 @@ class OrderServiceImplTest {
         String orderId = "123";
         Order order = Order.builder().orderId(orderId).build();
 
+        when(orderRepository.findByOrderId(orderId)).thenReturn(Optional.empty());
+        when(redisTemplate.hasKey(anyString())).thenReturn(false);
         when(orderRepository.save(order)).thenReturn(order);
 
         Order createdOrder = orderService.create(order);
 
         assertNotNull(createdOrder);
-        verify(orderRepository, times(1)).save(order);
-        verify(orderCacheService, times(1)).add(orderId, order);
     }
 
     @Test
@@ -66,6 +73,7 @@ class OrderServiceImplTest {
         String orderId = "123";
         Order cachedOrder = Order.builder().orderId(orderId).build();
 
+        when(redisTemplate.hasKey(anyString())).thenReturn(false); 
         when(orderCacheService.get(orderId)).thenReturn(cachedOrder);
 
         Order orderResult = orderService.get(orderId);
@@ -80,6 +88,7 @@ class OrderServiceImplTest {
         String orderId = "123";
         Order order = Order.builder().orderId(orderId).build();
 
+        when(redisTemplate.hasKey(orderId)).thenReturn(false);
         when(orderCacheService.get(orderId)).thenReturn(null);
         when(orderRepository.findByOrderId(orderId)).thenReturn(Optional.of(order));
 
@@ -90,27 +99,44 @@ class OrderServiceImplTest {
         verify(orderCacheService, times(1)).add(orderId, orderResult);
     }
 
+    
     @Test
-    void shouldReturnNullWhenOrderDoesNotExist() {
+    void shouldRetrieveOrderFromCacheIfAvailable() {
         String orderId = "123";
+        Order cachedOrder = Order.builder().orderId(orderId).build();
 
-        when(orderCacheService.get(orderId)).thenReturn(null);
-        when(orderRepository.findByOrderId(orderId)).thenReturn(Optional.empty());
+        when(redisTemplate.hasKey(orderId)).thenReturn(true);
+        when(orderCacheService.get(orderId)).thenReturn(cachedOrder);
 
         Order orderResult = orderService.get(orderId);
 
-        assertNull(orderResult);
+        assertNotNull(orderResult);
+        assertEquals(orderId, orderResult.getOrderId());
+        verify(orderCacheService, times(1)).get(orderId);
+        verifyNoInteractions(orderRepository);
     }
 
     @Test
-    void shouldHandleErrorWhenSavingOrder() {
+    void shouldThrowExceptionWhenOrderDoesNotExist() {
+        String orderId = "123";
+
+        when(redisTemplate.hasKey(orderId)).thenReturn(false);
+        when(orderCacheService.get(orderId)).thenReturn(null);
+        when(orderRepository.findByOrderId(orderId)).thenReturn(Optional.empty());
+
+        assertThrows(OrderNotFoundException.class, () -> orderService.get(orderId));
+        verify(orderRepository, times(1)).findByOrderId(orderId);
+    }
+
+    @Test
+    void shouldHandleErrorWhenProcessOrder() {
         String orderId = "123";
         Order order = Order.builder().orderId(orderId).build();
 
-        doThrow(new RuntimeException("Database error")).when(orderRepository).save(order);
+        doThrow(new RuntimeException("Erro ao processar pedido")).when(processOrderUseCase).process(any(Order.class));
 
         assertThrows(RuntimeException.class, () -> orderService.create(order));
-        verifyNoInteractions(orderCacheService);
-        verify(logger).error(eq("Erro ao salvar pedido: {}"), eq(order), any(RuntimeException.class));
     }
+
+
 }

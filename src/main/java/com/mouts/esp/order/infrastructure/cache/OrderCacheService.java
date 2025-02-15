@@ -36,7 +36,11 @@ public class OrderCacheService {
 	}
 
 	public Order get(String orderId) {
-	    Order order = (Order) redisTemplate.opsForValue().get(orderId);
+		Order order = null;
+	    if (Boolean.TRUE.equals(redisTemplate.hasKey(orderId))) {
+	    	order = redisTemplate.opsForValue().get(orderId);
+	    }
+
 	    if (Objects.nonNull(order)) {
 	        logger.debug("Pedido {} recuperado do cache", orderId);
 	    } else {

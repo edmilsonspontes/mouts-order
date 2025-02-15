@@ -31,31 +31,34 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Order create(final Order order) {
+    	long startTime = System.currentTimeMillis();
         logger.info("Criando pedido: {}", order.getOrderId());
         
-        if (exists(order.getOrderId()) != null) {
-            throw new OrderAlreadyExistsException("Pedido com ID " + order.getOrderId() + " já cadastrado.");
+        if (getFromCaheOrDatabase(order.getOrderId()) != null) {
+            throw new OrderAlreadyExistsException("Pedido com orderId " + order.getOrderId() + " já cadastrado.");
         }
 
 		processOrderUseCase.process(order);
+	    logger.info("Pedido criado: orderId={}, tempoExecucao={}ms",
+	    		order.getOrderId(), (System.currentTimeMillis() - startTime));
 
         return order;
     }
     
     @Override
     public Order get(final String orderId) {
-        return Optional.ofNullable(exists(orderId))
+        return Optional.ofNullable(getFromCaheOrDatabase(orderId))
                 .orElseThrow(() -> new OrderNotFoundException("Pedido com ID " + orderId + " não encontrado."));
     }
 
     @Override
-    public Order exists(final String orderId) {
-        return Optional.ofNullable(existsInCache(orderId))
-                .orElseGet(() -> existsInDatabase(orderId));
+    public Order getFromCaheOrDatabase(final String orderId) {
+        return Optional.ofNullable(getFromCache(orderId))
+                .orElseGet(() -> getFromDatabase(orderId));
     }
 
     @Override
-    public Order existsInCache(final String orderId) {
+    public Order getFromCache(final String orderId) {
         Order order = (Order) orderCacheService.get(orderId);
         if (Objects.nonNull(order)) {
             logger.debug("Pedido encontrado no cache: {}", orderId);
@@ -64,7 +67,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public Order existsInDatabase(final String orderId) {
+    public Order getFromDatabase(final String orderId) {
         Optional<Order> orderOptional = orderRepository.findByOrderId(orderId);
         
         orderOptional.ifPresent(order -> {

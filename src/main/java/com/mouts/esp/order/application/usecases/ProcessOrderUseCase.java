@@ -25,6 +25,7 @@ public class ProcessOrderUseCase {
     }
 
     public void process(final Order order) {
+    	logger.info("Iniciando processamento: orderId={}", order.getOrderId());
         if (orderCacheService.get(order.getOrderId()) != null) {
             logger.warn("Pedido {} já processado, ignorando...", order.getOrderId());
             return;
@@ -37,7 +38,12 @@ public class ProcessOrderUseCase {
 
         order.calculateTotal();
         orderRepository.save(order);
-        orderCacheService.add(order.getOrderId(), order);
+        
+        try {
+            orderCacheService.add(order.getOrderId(), order);
+        } catch (RuntimeException e) {
+            logger.error("Erro ao adicionar pedido ao cache: {}", order.getOrderId(), e);
+        }
         
         logger.info("Pedido {} processado com sucesso.", order.getOrderId());
         try {
