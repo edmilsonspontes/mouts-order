@@ -29,6 +29,8 @@
 	    <spring-boot.version>3.3.8</spring-boot.version>
 	    <modelmapper.version>3.2.2</modelmapper.version>
 	    <spring.boot.testcontainers.version>3.4.2</spring.boot.testcontainers.version>
+	    <logstash-logback-encoder.version>8.0</logstash-logback-encoder.version>
+	    <dd-trace-api.version>1.46.0</dd-trace-api.version>
 	</properties>
 	
 	<dependencies>
@@ -71,7 +73,6 @@
 		    <artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
-	
 	    <!-- Lombok -->
 	    <dependency>
 	        <groupId>org.projectlombok</groupId>
@@ -95,13 +96,22 @@
 	        <groupId>ch.qos.logback</groupId>
 	        <artifactId>logback-classic</artifactId>
 	    </dependency>
+		<dependency>
+		    <groupId>net.logstash.logback</groupId>
+		    <artifactId>logstash-logback-encoder</artifactId>
+		    <version>${logstash-logback-encoder.version}</version>
+		</dependency>
 
 	    <!-- Datadog para monitoramento -->
 	    <dependency>
 	        <groupId>com.datadoghq</groupId>
 	        <artifactId>dd-trace-api</artifactId>
-	        <version>1.46.0</version>
+	        <version>${dd-trace-api.version}</version>
 	    </dependency>
+		<dependency>
+		    <groupId>io.micrometer</groupId>
+		    <artifactId>micrometer-registry-datadog</artifactId>
+		</dependency>
 
 	    <!-- Testes Unitários -->
 	    <dependency>
@@ -159,8 +169,12 @@
 	        <plugin>
 	            <groupId>org.springframework.boot</groupId>
 	            <artifactId>spring-boot-maven-plugin</artifactId>
+	            <configuration>
+	                <layers>
+	                    <enabled>true</enabled>
+	                </layers>
+	            </configuration>
 	        </plugin>
-	
 	        <plugin>
 	            <groupId>org.apache.maven.plugins</groupId>
 	            <artifactId>maven-compiler-plugin</artifactId>
@@ -180,19 +194,18 @@
 	            <groupId>org.apache.maven.plugins</groupId>
 	            <artifactId>maven-surefire-plugin</artifactId>
 	        </plugin>
-	        
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <executions>
-                <execution>
-                    <goals>
-                        <goal>integration-test</goal>
-                        <goal>verify</goal>
-                    </goals>
-                </execution>
-            </executions>
-        </plugin>
+	        <plugin>
+	            <groupId>org.apache.maven.plugins</groupId>
+	            <artifactId>maven-failsafe-plugin</artifactId>
+	            <executions>
+	                <execution>
+	                    <goals>
+	                        <goal>integration-test</goal>
+	                        <goal>verify</goal>
+	                    </goals>
+	                </execution>
+	            </executions>
+	        </plugin>
 	    </plugins>
 	</build>
 </project>
