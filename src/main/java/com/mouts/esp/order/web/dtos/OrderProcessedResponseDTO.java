@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class OrderResponseDTO {
+public class OrderProcessedResponseDTO {
     private String orderId;
     private double totalAmount;
     private String status;
