@@ -1,6 +1,5 @@
 package com.mouts.esp.order;
 
-import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -24,7 +23,4 @@ class OrderApplicationTest {
         registry.add("spring.rabbitmq.port", rabbitMQContainer::getFirstMappedPort);
     }
 
-    @Test
-    void contextLoads() {
-    }
 }

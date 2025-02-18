@@ -13,7 +13,7 @@ public class RabbitMQConfig {
     public static final String ORDERS_GENERATED_EXCHANGE = "orders.generated.exchange";
     public static final String ORDERS_PROCESSED_EXCHANGE = "orders.processed.exchange";
     public static final String ORDERS_GENERATED_ROUTING_KEY = "orders.generated.key";
-    public static final String ORDERS_PROCESSED_ROUTING_KEY = "orders.processed.order";
+    public static final String ORDERS_PROCESSED_ROUTING_KEY = "orders.processed.key";
     public static final String ORDERS_GENERATED_QUEUE = "orders.generated.queue";
     public static final String ORDERS_PROCESSED_QUEUE = "orders.processed.queue";
 

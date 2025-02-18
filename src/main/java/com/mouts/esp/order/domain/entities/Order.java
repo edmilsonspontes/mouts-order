@@ -2,7 +2,6 @@ package com.mouts.esp.order.domain.entities;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.Objects;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
