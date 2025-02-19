@@ -59,7 +59,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Order getFromCache(final String orderId) {
-        Order order = (Order) orderCacheService.get(orderId);
+        Order order = orderCacheService.get(orderId);
         if (Objects.nonNull(order)) {
             logger.debug("Pedido encontrado no cache: {}", orderId);
         }

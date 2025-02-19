@@ -14,7 +14,7 @@ import org.springframework.http.ResponseEntity;
 
 import com.mouts.esp.order.application.service.OrderService;
 import com.mouts.esp.order.domain.entities.Order;
-import com.mouts.esp.order.web.dtos.OrderResponseDTO;
+import com.mouts.esp.order.web.dtos.OrderProcessedResponseDTO;
 
 class OrderControllerTest {
 
@@ -36,7 +36,7 @@ class OrderControllerTest {
 
         when(orderService.get(orderId)).thenReturn(order);
 
-        ResponseEntity<OrderResponseDTO> response = orderController.getOrder(orderId);
+        ResponseEntity<OrderProcessedResponseDTO> response = orderController.getOrder(orderId);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -49,7 +49,7 @@ class OrderControllerTest {
 
         when(orderService.get(orderId)).thenReturn(null);
         
-        ResponseEntity<OrderResponseDTO> response = orderController.getOrder(orderId);
+        ResponseEntity<OrderProcessedResponseDTO> response = orderController.getOrder(orderId);
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }

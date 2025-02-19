@@ -14,7 +14,6 @@ import org.testcontainers.junit.jupiter.Container;
 
 import com.mouts.esp.order.application.service.OrderService;
 import com.mouts.esp.order.domain.entities.Order;
-import com.mouts.esp.order.infrastructure.repositories.OrderRepository;
 
 @SpringBootTest
 @ContextConfiguration(initializers = OrderIT.Initializer.class)

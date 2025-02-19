@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.mouts.esp.order.application.service.OrderService;
 import com.mouts.esp.order.domain.entities.Order;
 import com.mouts.esp.order.web.dtos.OrderRequestDTO;
-import com.mouts.esp.order.web.dtos.OrderResponseDTO;
+import com.mouts.esp.order.web.dtos.OrderProcessedResponseDTO;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,19 +30,19 @@ public class OrderController {
         this.orderService = orderService;
     }
 
-    @Operation(summary = "Buscar pedido por ID", description = "Retorna um pedidos.")
+    @Operation(summary = "Buscar pedido por ID", description = "Retorna um pedidos processado")
     @GetMapping("/{orderId}")
-    public ResponseEntity<OrderResponseDTO> getOrder(@PathVariable String orderId) {
+    public ResponseEntity<OrderProcessedResponseDTO> getOrder(@PathVariable String orderId) {
         Order order = orderService.get(orderId);
         if (order == null) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(modelMapper.map(order, OrderResponseDTO.class));
+        return ResponseEntity.ok(modelMapper.map(order, OrderProcessedResponseDTO.class));
     }
 
-    @Operation(summary = "Cria pedido", description = "Cria um pedido.")
+    @Operation(summary = "Cria pedido", description = "Cria um pedido com lista de produtos para processamento.")
     @PostMapping
-    public ResponseEntity<String> getOrder(@RequestBody OrderRequestDTO order) throws Exception {
+    public ResponseEntity<String> getOrder(@RequestBody OrderRequestDTO order) {
         if (order == null) {
             return ResponseEntity.notFound().build();
         }
