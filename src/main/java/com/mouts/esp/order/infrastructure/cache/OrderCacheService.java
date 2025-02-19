@@ -28,7 +28,7 @@ public class OrderCacheService {
 	public void add(String orderId, Order order) {
 		logger.info("Tentando adicionar pedido {} ao Redis: {}", orderId, order);
 	    try {
-	        redisTemplate.opsForValue().set(orderId, order, ttlTimeout, TimeUnit.MINUTES);
+	        redisTemplate.opsForValue().set("order", order, ttlTimeout, TimeUnit.MINUTES);
 	        logger.info("Pedido {} adicionado ao cache Redis com timeout de {} minutos", orderId, ttlTimeout);
 	    } catch (Exception e) {
 	        logger.error("Erro ao adicionar pedido {} ao cache: {}", orderId, e.getMessage(), e);
